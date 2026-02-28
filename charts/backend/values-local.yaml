@@ -7,7 +7,7 @@
 # Initial deploy: built locally, loaded into kind (pullPolicy: IfNotPresent uses local copy)
 # After CI runs: CI pushes to GHCR, updates the tag below, ArgoCD pulls from GHCR
 image:
-  repository: 'ghcr.io/CHARANPRAJWAL/backend-api' # Replace <GITHUB_ORG>
+  repository: 'ghcr.io/charanprajwal/backend-api' # Replace <GITHUB_ORG>
   tag: 'local' # ← CI updates this line
   pullPolicy: IfNotPresent
 
