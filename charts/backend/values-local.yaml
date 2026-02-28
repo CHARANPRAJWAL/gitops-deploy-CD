@@ -1,0 +1,66 @@
+# ── Local CI/CD Overrides (kind + ArgoCD + GHCR) ──
+# Usage:
+#   Quick test:  helm install backend ./charts/backend -n backend-production -f charts/backend/values.yaml -f charts/backend/values-local.yaml
+#   ArgoCD:      ArgoCD Application (backend-local.yaml) references these value files
+
+# ── Image ──
+# Initial deploy: built locally, loaded into kind (pullPolicy: IfNotPresent uses local copy)
+# After CI runs: CI pushes to GHCR, updates the tag below, ArgoCD pulls from GHCR
+image:
+  repository: 'ghcr.io/CHARANPRAJWAL/backend-api' # Replace <GITHUB_ORG>
+  tag: 'local' # ← CI updates this line
+  pullPolicy: IfNotPresent
+
+# ── GHCR pull credentials (needed after CI pushes to GHCR) ──
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+# ── Single replica for local ──
+replicaCount: 1
+
+# ── Resources (lower for local machines) ──
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+# ── Config (local PostgreSQL service) ──
+config:
+  DB_HOST: 'postgres.backend-production.svc.cluster.local'
+  DB_PORT: '5432'
+  DB_NAME: 'sampledb'
+  NODE_ENV: 'development'
+  PORT: '5000'
+
+# ── Disable AWS-dependent features ──
+externalSecret:
+  enabled: false # No ESO / AWS Secrets Manager locally
+
+ingress:
+  enabled: false # No ALB locally — use port-forward instead
+
+hpa:
+  enabled: false # No metrics server
+
+networkPolicy:
+  enabled: false # kind default CNI doesn't enforce NetworkPolicy
+
+pdb:
+  enabled: false # Single replica, no disruption budget needed
+
+serviceMonitor:
+  enabled: false # No Prometheus Operator locally (unless you install it)
+
+# ── Migration Job ──
+migration:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-local
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default              # Use default project for local testing (no RBAC restrictions)
+  source:
+    repoURL: 'https://github.com/CHARANPRAJWAL/gitops-deploy.git'   # Replace <GITHUB_ORG>
+    targetRevision: main
+    path: charts/backend
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-local.yaml     # Local overrides (GHCR image, no ALB/ESO/HPA)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backend-production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

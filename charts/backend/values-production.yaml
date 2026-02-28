@@ -1,0 +1,15 @@
+# ── Image (updated by CI pipeline) ──
+image:
+  repository: "<ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/backend-api"
+  tag: "sha-0000000"    # ← CI updates this line on every merge to main
+
+# ── Config (production-specific) ──
+config:
+  DB_HOST: "<your-rds-endpoint>.us-east-1.rds.amazonaws.com"
+
+# ── Ingress — HTTPS (uncomment when ACM cert is ready) ──
+# ingress:
+#   annotations:
+#     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+#     alb.ingress.kubernetes.io/ssl-redirect: "443"
+#     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:ACCOUNT:certificate/CERT-ID

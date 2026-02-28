@@ -1,0 +1,119 @@
+# ── Image ──
+image:
+  repository: ""       # Set in values-production.yaml (ECR URI) or values-local.yaml (GHCR)
+  tag: ""              # Set by CI pipeline
+  pullPolicy: IfNotPresent
+
+# ── Image Pull Secrets (for private registries) ──
+imagePullSecrets: []
+#  - name: ghcr-pull-secret    # Local: GHCR auth
+#  - name: ecr-pull-secret     # Production: typically not needed (IRSA handles ECR)
+
+# ── Replicas (HPA overrides this) ──
+replicaCount: 2
+
+# ── Service ──
+service:
+  type: ClusterIP
+  port: 5000
+
+# ── Ingress (ALB) ──
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+    alb.ingress.kubernetes.io/group.name: backend-prod
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/tags: Environment=production,App=backend-prod
+  path: /api
+  pathType: Prefix
+
+# ── Resources ──
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# ── HPA ──
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+
+# ── Health checks ──
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 5000
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 5000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+
+# ── Config (non-secret) ──
+config:
+  DB_PORT: "5432"
+  DB_NAME: "sampledb"
+  NODE_ENV: "production"
+  PORT: "5000"
+
+# ── Secrets (ESO) ──
+externalSecret:
+  enabled: true
+  refreshInterval: 1h
+  secretStoreName: aws-secrets-manager
+  secretStoreKind: ClusterSecretStore
+  targetSecretName: backend-secret
+  remoteKey: backend-prod/db-credentials
+  properties:
+    - secretKey: POSTGRES_USER
+      remoteProperty: POSTGRES_USER
+    - secretKey: POSTGRES_PASSWORD
+      remoteProperty: POSTGRES_PASSWORD
+
+# ── Prisma Migration Job ──
+migration:
+  enabled: true
+  command: ["npx", "prisma", "migrate", "deploy"]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# ── Network Policy ──
+networkPolicy:
+  enabled: true
+  vpcCIDR: 192.168.0.0/16   # Replace with your actual VPC CIDR
+
+# ── Pod Disruption Budget ──
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# ── ServiceMonitor (Prometheus scraping) ──
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  path: /metrics
