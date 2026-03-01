@@ -8,7 +8,7 @@
 # After CI runs: CI pushes to GHCR, updates the tag below, ArgoCD pulls from GHCR
 image:
   repository: 'ghcr.io/charanprajwal/backend-api' # Replace <GITHUB_ORG>
-  tag: "sha-16d3666"
+  tag: "sha-48ef6f5"
   pullPolicy: IfNotPresent
 
 # ── GHCR pull credentials (needed after CI pushes to GHCR) ──
